@@ -254,9 +254,9 @@ class HVModbus:
       if self.param.mode == 'rtu':
          if devnum: d = self.devset[devnum]
          else: d = self.dev
-         return d.read_register(0x002C)
+         return d.read_register(0x002C)/10
       elif self.param.mode == 'tcp':
-         return self.client.read_holding_registers(0x002C)[0]
+         return self.client.read_holding_registers(0x002C)[0]/10
 
    def powerOn(self, devnum=None):
       if self.param.mode == 'rtu':
@@ -291,6 +291,8 @@ class HVModbus:
          pmtsn = d.read_string(0x0008, 6)
          hvsn = d.read_string(0x000E, 6)
          febsn = d.read_string(0x0014, 6)
+         tmp = d.read_registers(0x0004, 2)
+         devid = (tmp[1] << 16) + tmp[0]
       elif self.param.mode == 'tcp':
          l = self.client.read_holding_registers(0x0002, 1)
          fwver = struct.pack(f'>{len(l)}h', *l).decode()
@@ -300,8 +302,10 @@ class HVModbus:
          hvsn = struct.pack(f'>{len(l)}h', *l).decode()
          l = self.client.read_holding_registers(0x0014, 6)
          febsn = struct.pack(f'>{len(l)}h', *l).decode()
-         
-      return (fwver, pmtsn, hvsn, febsn)
+         l = self.client.read_holding_registers(0x0004, 2)
+         devid = struct.pack(f'>{len(l)}h', *l).decode()        # to test
+
+      return (fwver, pmtsn, hvsn, febsn, devid)
 
    def setPMTSerialNumber(self, sn, devnum=None):
       if self.param.mode == 'rtu':
