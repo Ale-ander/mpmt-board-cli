@@ -46,7 +46,7 @@ class RunControlApp(cmd2.Cmd):
         )
 
     def prsuccess(self, msg) -> None:
-        self.poutput(cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.LIGHT_CYAN))
+        self.poutput(cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.LIGHT_GREEN))
 
     def checkRange(self, value, minVal, maxVal) -> bool:
         if value < minVal or value > maxVal:
