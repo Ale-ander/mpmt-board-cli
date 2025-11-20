@@ -350,6 +350,33 @@ class RunControlApp(cmd2.Cmd):
             self.perror(f'Invalid response')
 
     #
+    # SPI clock speed
+    #
+    @cmd2.with_category("Slow control commands")
+    def do_spi(self, _) -> None:
+        """Change the SPI clock frequency"""
+        answer = input("Select SPI clock frequency(0-3): 0->10.42MHz 1->12.5MHz 2->15.625MHz 3->20.83MHz ")
+        cleanreg = self.read_reg(4)
+        if answer == '0':
+            self.write_reg(4, cleanreg & 0x7FFFF)
+            self.prsuccess(f"SPI frequency set to 10.42MHz")
+        elif answer == '1':
+            cleanreg |= 0x80000
+            cleanreg &= 0xFFFFF
+            self.write_reg(4, cleanreg)
+            self.prsuccess(f"SPI frequency set to 12.5MHz")
+        elif answer == '2':
+            cleanreg |= 0x100000
+            cleanreg &= 0x17FFFF
+            self.write_reg(4, cleanreg)
+            self.prsuccess(f"SPI frequency set to 15.625MHz")
+        elif answer == '3':
+            self.write_reg(4, cleanreg | 0x180000)
+            self.prsuccess(f"SPI frequency set to 20.83MHz")
+        else:
+            self.perror(f'Invalid response')
+
+    #
     # pulser control
     #
     pulser_parser = argparse.ArgumentParser()
@@ -670,9 +697,10 @@ class RunControlApp(cmd2.Cmd):
     @with_category("Monitoring commands")
     def do_version(self, _) -> None:
         """Check firmware version"""
-        version = self.read_reg(62)
+        date = str(hex(self.read_reg(61))[2:])
+        time = str(hex(self.read_reg(62))[2:])
         sha = self.read_reg(63)
-        self.poutput(f"Firmware version: {version}\nCommit SHA: {sha:08x}")
+        self.poutput(f"Bitstream created the {date[6:]}-{date[4:6]}-{date[:4]} at {time[:2]}:{time[2:4]}:{time[4:6]} (commit SHA: {sha:08x})")
 
     #
     # default
