@@ -129,3 +129,5 @@ dmypy.json
 .pyre/
 
 fpgautil/fpgautil
+.idea
+sensors/set_hk.py
