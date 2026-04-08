@@ -457,7 +457,7 @@ class RunControlApp(cmd2.Cmd):
     # time to peak
     #
     ttp_parser = argparse.ArgumentParser()
-    ttp_parser.add_argument('value', type=int, help='time after trigger to ADC sample (max=4096, unit=8ns)')
+    ttp_parser.add_argument('value', type=int, help='time after trigger to ADC sample (max=4096, unit=~3.6ns)')
     ttp_parser.add_argument('channel', type=int, nargs='*', help='channel (1-19)')
     ttp_parser.add_argument('-a', "--all", action="store_true", help='set for all channels')
 
@@ -475,9 +475,9 @@ class RunControlApp(cmd2.Cmd):
                     chaddress = math.floor((channel-1) / 2) + 28
                     cleanreg = self.read_reg(chaddress)
                     if channel % 2 == 0:
-                        self.write_reg(chaddress, (args.value << 12) | (cleanreg & 0xFFF))
-                    else:
                         self.write_reg(chaddress, (cleanreg & 0xFFF000) | args.value)
+                    else:
+                        self.write_reg(chaddress, (args.value << 12) | (cleanreg & 0xFFF))
 
     #
     # time to peak
@@ -700,6 +700,8 @@ class RunControlApp(cmd2.Cmd):
         date = str(hex(self.read_reg(61))[2:])
         time = str(hex(self.read_reg(62))[2:])
         sha = self.read_reg(63)
+        ver = str(hex(self.read_reg(104)))
+        self.poutput(f"Firmware version v{ver[2]}.{int(ver[3:5])}.{int(ver[5:])}")
         self.poutput(f"Bitstream created the {date[6:]}-{date[4:6]}-{date[:4]} at {time[:2]}:{time[2:4]}:{time[4:6]} (commit SHA: {sha:08x})")
 
     #
