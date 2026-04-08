@@ -701,7 +701,7 @@ class RunControlApp(cmd2.Cmd):
         time = str(hex(self.read_reg(62))[2:])
         sha = self.read_reg(63)
         ver = str(hex(self.read_reg(104)))
-        self.poutput(f"Firmware version v{ver[2]}.{int(ver[3:5])}.{int(ver[5:])}")
+        self.poutput(f"Firmware version v{ver[2]}.{int(ver[3:5])}.{int(ver[5:], 16)}")
         self.poutput(f"Bitstream created the {date[6:]}-{date[4:6]}-{date[:4]} at {time[:2]}:{time[2:4]}:{time[4:6]} (commit SHA: {sha:08x})")
 
     #
