@@ -1,5 +1,6 @@
 import struct
 from sys import exit
+import math
 
 import pymodbus.client as ModbusClient
 from pymodbus import (
@@ -137,8 +138,9 @@ class HVModbus:
         slave = self.address if slave is None else slave
         if value.is_integer():
             self.client.write_register(address=0x2D, value=int(value), slave=slave)
+            self.client.write_register(address=0x35, value=0, slave=slave)
         else:
-            self.client.write_register(address=0x2D, value=round(value), slave=slave)
+            self.client.write_register(address=0x2D, value=math.floor(value), slave=slave)
             self.client.write_register(address=0x35, value=int(value * 10) % 10, slave=slave)
 
     def getThreshold(self, slave=None):
@@ -220,7 +222,7 @@ class HVModbus:
         slave = self.address if slave is None else slave
 
         monData = {}
-        rr = self.client.read_holding_registers(address=0, count=48, slave=slave)
+        rr = self.client.read_holding_registers(address=0, count=54, slave=slave)
 
         if rr.isError():
             return None
@@ -236,7 +238,8 @@ class HVModbus:
         monData['limitI'] = rr.registers[0x0025]
         monData['limitT'] = rr.registers[0x002F]
         monData['limitTRIP'] = rr.registers[0x0022]
-        monData['threshold'] = rr.registers[0x002D]
+        monData['thresholdm'] = rr.registers[0x002D]
+        monData['thresholdq'] = rr.registers[0x0035]
         monData['alarm'] = rr.registers[0x002E]
 
         return monData

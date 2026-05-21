@@ -164,7 +164,7 @@ class HighVoltageApp(cmd2.Cmd):
             [self.statusIcon(monData['status']), self.statusString(monData['status']), monData['Vset'],
              f'{monData["V"]:.3f}', f'{monData["I"]:.3f}', monData['T'], f'{monData["rateUP"]}/{monData["rateDN"]}',
              f'{monData["limitV"]}/{monData["limitI"]}/{monData["limitT"]}/{monData["limitTRIP"]}',
-             monData['threshold'], self.alarmString(monData['alarm'])]))
+             monData['thresholdm']+monData['thresholdq']/10, self.alarmString(monData['alarm'])]))
 
     #
     # select
