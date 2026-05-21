@@ -204,7 +204,7 @@ class RunControlApp(cmd2.Cmd):
         """Turn on channels"""
         if args.all:
             self.write_reg(1, 0X7FFFF)
-            self.prsuccess("All channels enabled")
+            self.prsuccess("All channels turned ON")
         else:
             for channel in args.value:
                 if self.checkRange(channel, 1, 19):
@@ -224,7 +224,7 @@ class RunControlApp(cmd2.Cmd):
         """Turn off channels"""
         if args.all:
             self.write_reg(1, 0)
-            self.prsuccess("All channels disabled")
+            self.prsuccess("All channels turned OFF")
         else:
             for channel in args.value:
                 if self.checkRange(channel, 1, 19):

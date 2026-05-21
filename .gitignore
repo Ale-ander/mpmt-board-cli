@@ -128,6 +128,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-fpgautil/fpgautil
 .idea
 sensors/set_hk.py

@@ -18,6 +18,7 @@ from typing import (
 
 HV_PASS = 'hv4all'
 
+
 class HighVoltageApp(cmd2.Cmd):
 
     def __init__(self, param):
@@ -35,7 +36,8 @@ class HighVoltageApp(cmd2.Cmd):
         self.prompt = cmd2.ansi.style(f'HV:{self.param.mode} [] > ', fg=cmd2.ansi.Fg.DARK_GRAY)
 
         cmd2.categorize(
-            (cmd2.Cmd.do_alias, cmd2.Cmd.do_help, cmd2.Cmd.do_history, cmd2.Cmd.do_quit, cmd2.Cmd.do_set, cmd2.Cmd.do_run_script),
+            (cmd2.Cmd.do_alias, cmd2.Cmd.do_help, cmd2.Cmd.do_history, cmd2.Cmd.do_quit, cmd2.Cmd.do_set,
+             cmd2.Cmd.do_run_script),
             "General commands"
         )
 
@@ -54,7 +56,7 @@ class HighVoltageApp(cmd2.Cmd):
     columns.append(Column("", width=14, data_horiz_align=HorizontalAlignment.CENTER))
 
     st = SimpleTable(columns, divider_char=None)
-    
+
     def prsuccess(self, msg) -> None:
         self.poutput(cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.LIGHT_GREEN))
 
@@ -93,7 +95,8 @@ class HighVoltageApp(cmd2.Cmd):
             if self.hv.getAddress() is None:
                 self.prompt = cmd2.ansi.style(f'HV:{self.param.mode} [] > ', fg=cmd2.ansi.Fg.DARK_GRAY)
             else:
-                self.prompt = cmd2.ansi.style(f'HV:{self.param.mode} [{self.hv.getAddress()}] > ', fg=cmd2.ansi.Fg.LIGHT_GREEN)
+                self.prompt = cmd2.ansi.style(f'HV:{self.param.mode} [{self.hv.getAddress()}] > ',
+                                              fg=cmd2.ansi.Fg.LIGHT_GREEN)
         else:
             self.perror(f'E: modbus address outside boundary - min:1 max:20')
 
@@ -148,12 +151,20 @@ class HighVoltageApp(cmd2.Cmd):
         return cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.WHITE, bg=cmd2.ansi.Bg.LIGHT_RED)
 
     def printMonitorHeader(self):
-        self.poutput(cmd2.ansi.style(self.st.generate_data_row(['','status','Vset','V','I','T','rate UP/DN','limit V/I/T/TRIP','trigger thr','alarm']), fg=cmd2.ansi.Fg.LIGHT_CYAN))
-        self.poutput(cmd2.ansi.style(self.st.generate_data_row(['','','[V]','[V]','[uA]','[°C]','[V/s]/[V/s]','[V]/[uA]/[°C]/[s]','[mV]','']), fg=cmd2.ansi.Fg.LIGHT_BLUE))
+        self.poutput(cmd2.ansi.style(self.st.generate_data_row(
+            ['', 'status', 'Vset', 'V', 'I', 'T', 'rate UP/DN', 'limit V/I/T/TRIP', 'trigger thr', 'alarm']),
+                                     fg=cmd2.ansi.Fg.LIGHT_CYAN))
+        self.poutput(cmd2.ansi.style(self.st.generate_data_row(
+            ['', '', '[V]', '[V]', '[uA]', '[°C]', '[V/s]/[V/s]', '[V]/[uA]/[°C]/[s]', '[mV]', '']),
+                                     fg=cmd2.ansi.Fg.LIGHT_BLUE))
 
     def printMonitorRow(self):
         monData = self.hv.readMonRegisters()
-        self.poutput(self.st.generate_data_row([self.statusIcon(monData['status']), self.statusString(monData['status']), monData['Vset'], f'{monData["V"]:.3f}', f'{monData["I"]:.3f}', monData['T'], f'{monData["rateUP"]}/{monData["rateDN"]}', f'{monData["limitV"]}/{monData["limitI"]}/{monData["limitT"]}/{monData["limitTRIP"]}', monData['threshold'], self.alarmString(monData['alarm'])]))
+        self.poutput(self.st.generate_data_row(
+            [self.statusIcon(monData['status']), self.statusString(monData['status']), monData['Vset'],
+             f'{monData["V"]:.3f}', f'{monData["I"]:.3f}', monData['T'], f'{monData["rateUP"]}/{monData["rateDN"]}',
+             f'{monData["limitV"]}/{monData["limitI"]}/{monData["limitT"]}/{monData["limitTRIP"]}',
+             monData['threshold'], self.alarmString(monData['alarm'])]))
 
     #
     # select
@@ -296,7 +307,7 @@ class HighVoltageApp(cmd2.Cmd):
         if self.checkConnection() is False:
             return
         info = self.hv.getInfo()
-        (m,q,t) = self.hv.readCalibRegisters()
+        (m, q, t) = self.hv.readCalibRegisters()
         self.poutput(f'{"FW ver": <25}: {info[0]}')
         self.poutput(f'{"PMT s/n": <25}: {info[1]}')
         self.poutput(f'{"HV s/n": <25}: {info[2]}')
@@ -311,7 +322,7 @@ class HighVoltageApp(cmd2.Cmd):
     # mon
     #
     mon_parser = argparse.ArgumentParser()
-    mon_parser.add_argument('seconds',  type=int, default=1, nargs='?', help='number of seconds')
+    mon_parser.add_argument('seconds', type=int, default=1, nargs='?', help='number of seconds')
 
     @cmd2.with_argparser(mon_parser)
     @cmd2.with_category("High Voltage commands")
@@ -332,7 +343,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_probe(self, _) -> None:
         """Probe addresses 1 to 20"""
-        for addr in range(1,21):
+        for addr in range(1, 21):
             found = self.hv.open(addr)
             if found:
                 self.prsuccess(f'{addr}')
@@ -343,7 +354,7 @@ class HighVoltageApp(cmd2.Cmd):
     # threshold
     #
     threshold_parser = argparse.ArgumentParser()
-    threshold_parser.add_argument('value', type=int, help='value in mV (min:0 max:2500)')
+    threshold_parser.add_argument('value', type=float, help='value in mV (min:0 max:2500)')
 
     @cmd2.with_argparser(threshold_parser)
     @cmd2.with_category("High Voltage commands")
@@ -355,6 +366,7 @@ class HighVoltageApp(cmd2.Cmd):
             if self.checkRange(args.value, 0, 2500): self.hv.setThreshold(args.value)
         else:
             self.perror(f'password not correct')
+
     #
     # serial
     #
@@ -475,7 +487,6 @@ class HighVoltageApp(cmd2.Cmd):
         else:
             self.perror(f'password not correct')
 
-
     #
     # calibration
     #
@@ -538,7 +549,7 @@ class HighVoltageApp(cmd2.Cmd):
                     time.sleep(2)
                     Vtemp = []
                     self.printMonitorHeader()
-                    for _ in range(0,10):
+                    for _ in range(0, 10):
                         self.printMonitorRow()
                         Vtemp.append(self.hv.getVoltage())
                         time.sleep(0.5)
@@ -546,7 +557,7 @@ class HighVoltageApp(cmd2.Cmd):
                     # delete min/max elements
                     Vmeas.sort()
                     Vmeas = np.delete(Vmeas, 0)
-                    Vmeas = np.delete(Vmeas, len(Vmeas)-1)
+                    Vmeas = np.delete(Vmeas, len(Vmeas) - 1)
                     Vread.append(Vmeas.mean())
                     self.poutput(f'{Vmeas}')
                     self.poutput(f'mean = {Vmeas.mean()}')
@@ -562,7 +573,7 @@ class HighVoltageApp(cmd2.Cmd):
         # turn y into a column vector
         y = y[:, np.newaxis]
         # direct least square regression
-        alpha = np.dot((np.dot(np.linalg.inv(np.dot(A.T,A)),A.T)),y)
+        alpha = np.dot((np.dot(np.linalg.inv(np.dot(A.T, A)), A.T)), y)
         self.poutput(cmd2.ansi.style(f'slope = {alpha[0][0]} , offset = {alpha[1][0]}', fg=cmd2.ansi.Fg.LIGHT_CYAN))
 
         # write calibration registers
@@ -578,11 +589,15 @@ class HighVoltageApp(cmd2.Cmd):
 
         self.prsuccess('calibration DONE!')
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', default='rtu', const='rtu', nargs='?', choices=['rtu', 'tcp'], help='set modbus interface (default: %(default)s)')
-    parser.add_argument('--port', action='store', type=str, help='serial port device (default: /dev/ttyPS2)', default='/dev/ttyPS2')
-    parser.add_argument('--host', action='store', type=str, help='mbusd hostname (default: localhost)', default='localhost')
+    parser.add_argument('--mode', default='rtu', const='rtu', nargs='?', choices=['rtu', 'tcp'],
+                        help='set modbus interface (default: %(default)s)')
+    parser.add_argument('--port', action='store', type=str, help='serial port device (default: /dev/ttyPS2)',
+                        default='/dev/ttyPS2')
+    parser.add_argument('--host', action='store', type=str, help='mbusd hostname (default: localhost)',
+                        default='localhost')
     args = parser.parse_args()
 
     app = HighVoltageApp(args)
