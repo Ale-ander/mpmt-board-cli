@@ -3,10 +3,7 @@ from sys import exit
 import math
 
 import pymodbus.client as ModbusClient
-from pymodbus import (
-    FramerType,
-    ModbusException,
-)
+from pymodbus import FramerType, ModbusException
 
 
 class HVModbus:
@@ -24,17 +21,17 @@ class HVModbus:
                 exit(1)
         elif self.param.mode == 'rtu':
             self.client = ModbusClient.ModbusSerialClient(
-                self.param.port,
-                framer=FramerType.RTU,
-                baudrate=115200,
-                bytesize=8,
-                parity="N",
-                stopbits=1,
-                timeout=0.5
+            self.param.port,
+            framer=FramerType.RTU,
+            baudrate=115200,
+            bytesize=8,
+            parity="N",
+            stopbits=1,
+            timeout=0.5
             )
-            if not self.client.connect():
-                print(f'E: port not available ({self.param.port})')
-                exit(1)
+        if not self.client.connect():
+            print(f'E: port not available ({self.param.port})')
+            exit(1)
 
     def open(self, addr):
         try:
@@ -181,11 +178,9 @@ class HVModbus:
         pmtsn = struct.pack(f'>{len(l)}h', *l).decode()
         l = self.client.read_holding_registers(address=0x0E, count=6, slave=slave).registers
         hvsn = struct.pack(f'>{len(l)}h', *l).decode()
-        l = self.client.read_holding_registers(address=0x14, count=6, slave=slave).registers
-        febsn = struct.pack(f'>{len(l)}h', *l).decode()
         l = self.client.read_holding_registers(address=0x04, count=2, slave=slave).registers
         devid = (l[1] << 16) + l[0]
-        return fwver, pmtsn, hvsn, febsn, devid
+        return fwver, pmtsn, hvsn, devid
 
     def safe_write_registers(self, address, values, slave=None):
         slave = self.address if slave is None else slave
@@ -217,6 +212,10 @@ class HVModbus:
         slave = self.address if slave is None else slave
         data = self._pack_sn_to_registers(sn)
         self.safe_write_registers(address=0x14, values=data, slave=slave)
+
+    def setModbusAddress(self, addr, slave=None):
+        slave = self.address if slave is None else slave
+        self.client.write_register(address=0x00, value=addr, slave=slave)
 
     def readMonRegisters(self, slave=None):
         slave = self.address if slave is None else slave
