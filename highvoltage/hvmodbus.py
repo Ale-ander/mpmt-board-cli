@@ -29,9 +29,9 @@ class HVModbus:
             stopbits=1,
             timeout=0.5
             )
-        if not self.client.connect():
-            print(f'E: port not available ({self.param.port})')
-            exit(1)
+            if not self.client.connect():
+                print(f'E: port not available ({self.param.port})')
+                exit(1)
 
     def open(self, addr):
         try:
