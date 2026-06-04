@@ -1,58 +1,42 @@
 import sys
 import mmap
-import minimalmodbus
+import pymodbus.client as ModbusClient
 import time
+from pymodbus import FramerType, ModbusException
 
-def checkRegBoundary(addr):
-    if (addr < 0 or addr > 50):
-        return False
-    return True
+try:
+    fid = open('/dev/uio0', 'r+b', 0)
+except FileNotFoundError:
+    perror("UIO device not found")
+    sys.exit(-1)
 
-def do_read(address) -> None:
-    """Read UIO register"""
-    if (checkRegBoundary(address)):
-        value = int.from_bytes(regs[address * 4:(address * 4) + 4], byteorder='little')
-        print(f'0x{value:08x} ({value})')
-    else:
-        print(f'E: register address outside boundary - min:0 max:{50}')
+regs = mmap.mmap(fid.fileno(), 0x10000)
 
-def do_write(address, value) -> None:
-  """Write UIO register"""
-  if (checkRegBoundary(address)):
-     try:
-        regs[address*4:(address*4)+4] = int.to_bytes(value, 4, byteorder='little')
-     except:
-        print(f'E: write register error')
-  else:
-     print(f'E: register address outside boundary - min:0 max:{50}')
+def write(add: int, value: int) -> None:
+    global regs
+    regs[add*4:(add*4)+4] = int.to_bytes(value, 4, byteorder='little')
 
-def open_serial(serial, addr):
-     dev = minimalmodbus.Instrument(serial, addr)
-     dev.serial.baudrate = 115200
-     dev.serial.timeout = 0.5
-     dev.mode = minimalmodbus.MODE_RTU
-     return dev
+
+def read(add: int) -> int:
+    global regs
+    return int.from_bytes(regs[add*4:(add*4)+4], byteorder='little')
 
 if __name__ == '__main__':
+    FEB = ModbusClient.ModbusTcpClient('localhost', port=502, framer=FramerType.SOCKET)
 
-    try:
-        fid = open("/dev/uio0", 'r+b', 0)
-    except:
-        print("E: UIO device /dev/uio0 not found")
-        sys.exit(-1)
-    
-    regs = mmap.mmap(fid.fileno(), 0x10000)
-    
+    if not FEB.connect():
+        print(f'E: host not reachable or mbusd not running ({self.param.host})')
+        sys.exit(1)
+
     for i in range(1, 20):
-        do_write(1, 2**(i-1))
-        do_read(1)
-        print(f'Acceso socket {i}')
+        write(1, 2**(i-1))
+        print(f'Turned on socket {i}')
         time.sleep(1)
-        try:
-            FEB = open_serial('/dev/ttyPS2', 20)
-            FEB.write_register(0x0000, i)
-            print(f'Indirizzo {i} cambiato')
-        except:
-            print('Scheda non trovata')
+        rr = FEB.write_register(address=0, value=i, slave=20)
+        if rr.isError():
+            print('Board not connected')
+        else:
+            print(f'Address changed')
+            
         time.sleep(1)
-    do_write(1, 0)
+        write(1, 0)

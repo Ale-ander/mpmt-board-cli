@@ -12,11 +12,10 @@ from cmd2.table_creator import (
     SimpleTable,
     HorizontalAlignment
 )
-from typing import (
-    List,
-)
+from typing import List
 
 HV_PASS = 'hv4all'
+
 
 class HighVoltageApp(cmd2.Cmd):
 
@@ -35,7 +34,8 @@ class HighVoltageApp(cmd2.Cmd):
         self.prompt = cmd2.ansi.style(f'HV:{self.param.mode} [] > ', fg=cmd2.ansi.Fg.DARK_GRAY)
 
         cmd2.categorize(
-            (cmd2.Cmd.do_alias, cmd2.Cmd.do_help, cmd2.Cmd.do_history, cmd2.Cmd.do_quit, cmd2.Cmd.do_set, cmd2.Cmd.do_run_script),
+            (cmd2.Cmd.do_alias, cmd2.Cmd.do_help, cmd2.Cmd.do_history, cmd2.Cmd.do_quit, cmd2.Cmd.do_set,
+             cmd2.Cmd.do_run_script),
             "General commands"
         )
 
@@ -54,7 +54,7 @@ class HighVoltageApp(cmd2.Cmd):
     columns.append(Column("", width=14, data_horiz_align=HorizontalAlignment.CENTER))
 
     st = SimpleTable(columns, divider_char=None)
-    
+
     def prsuccess(self, msg) -> None:
         self.poutput(cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.LIGHT_GREEN))
 
@@ -70,7 +70,8 @@ class HighVoltageApp(cmd2.Cmd):
             return False
         return True
 
-    def checkAddress(self, addr):
+    @staticmethod
+    def checkAddress(addr):
         return 0 <= addr <= 20
 
     def checkConnection(self):
@@ -80,7 +81,8 @@ class HighVoltageApp(cmd2.Cmd):
             self.perror(f'HV module not connected - use select command')
             return False
 
-    def checkPassword(self, password):
+    @staticmethod
+    def checkPassword(password):
         return password == HV_PASS
 
     def select_address(self, address):
@@ -97,7 +99,8 @@ class HighVoltageApp(cmd2.Cmd):
         else:
             self.perror(f'E: modbus address outside boundary - min:1 max:20')
 
-    def statusString(self, statusCode):
+    @staticmethod
+    def statusString(statusCode):
         if statusCode == 0:
             return 'UP'
         elif statusCode == 1:
@@ -115,25 +118,27 @@ class HighVoltageApp(cmd2.Cmd):
         else:
             return 'undef'
 
-    def statusIcon(self, statusCode):
+    @staticmethod
+    def statusIcon(statusCode):
         if statusCode == 0:
-            return self.prsuccess(u'\u25C9')
+            return u'\u25C9'
         elif statusCode == 1:
             return u'\u25C9'
         elif statusCode == 2:
-            return self.prsuccess(u'\u22C0')
+            return u'\u22C0'
         elif statusCode == 3:
-            return self.pwarning(u'\u22C1')
+            return u'\u22C1'
         elif statusCode == 4:
-            return self.prsuccess(u'\u22C0')
+            return u'\u22C0'
         elif statusCode == 5:
-            return self.pwarning(u'\u22C1')
+            return u'\u22C1'
         elif statusCode == 6:
-            return self.prsuccess(u'\u25C9')
+            return u'\u25C9'
         else:
             return "undef"
 
-    def alarmString(self, alarmCode):
+    @staticmethod
+    def alarmString(alarmCode):
         msg = ' '
         if alarmCode == 0:
             return 'none'
@@ -148,12 +153,20 @@ class HighVoltageApp(cmd2.Cmd):
         return cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.WHITE, bg=cmd2.ansi.Bg.LIGHT_RED)
 
     def printMonitorHeader(self):
-        self.poutput(cmd2.ansi.style(self.st.generate_data_row(['','status','Vset','V','I','T','rate UP/DN','limit V/I/T/TRIP','trigger thr','alarm']), fg=cmd2.ansi.Fg.LIGHT_CYAN))
-        self.poutput(cmd2.ansi.style(self.st.generate_data_row(['','','[V]','[V]','[uA]','[°C]','[V/s]/[V/s]','[V]/[uA]/[°C]/[s]','[mV]','']), fg=cmd2.ansi.Fg.LIGHT_BLUE))
+        self.poutput(cmd2.ansi.style(self.st.generate_data_row(
+            ['', 'status', 'Vset', 'V', 'I', 'T', 'rate UP/DN', 'limit V/I/T/TRIP', 'trigger thr', 'alarm']),
+                                     fg=cmd2.ansi.Fg.LIGHT_CYAN))
+        self.poutput(cmd2.ansi.style(self.st.generate_data_row(
+            ['', '', '[V]', '[V]', '[uA]', '[°C]', '[V/s]/[V/s]', '[V]/[uA]/[°C]/[s]', '[mV]', '']),
+                                     fg=cmd2.ansi.Fg.LIGHT_BLUE))
 
     def printMonitorRow(self):
         monData = self.hv.readMonRegisters()
-        self.poutput(self.st.generate_data_row([self.statusIcon(monData['status']), self.statusString(monData['status']), monData['Vset'], f'{monData["V"]:.3f}', f'{monData["I"]:.3f}', monData['T'], f'{monData["rateUP"]}/{monData["rateDN"]}', f'{monData["limitV"]}/{monData["limitI"]}/{monData["limitT"]}/{monData["limitTRIP"]}', monData['threshold'], self.alarmString(monData['alarm'])]))
+        self.poutput(self.st.generate_data_row(
+            [self.statusIcon(monData['status']), self.statusString(monData['status']), monData['Vset'],
+             f'{monData["V"]:.3f}', f'{monData["I"]:.3f}', monData['T'], f'{monData["rateUP"]}/{monData["rateDN"]}',
+             f'{monData["limitV"]}/{monData["limitI"]}/{monData["limitT"]}/{monData["limitTRIP"]}',
+             monData['thresholdm']+monData['thresholdq']/10, self.alarmString(monData['alarm'])]))
 
     #
     # select
@@ -192,7 +205,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_rate(self, args):
         """Change the rampup/rampdown values [V/s]"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         func = getattr(args, 'func', None)
         if func is not None:
@@ -236,8 +249,8 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_argparser(limit_parser)
     @cmd2.with_category("High Voltage commands")
     def do_limit(self, args):
-        """Set current/voltage/tempreature/trip time limit"""
-        if self.checkConnection() is False:
+        """Set current/voltage/temperature/trip time limit"""
+        if not self.checkConnection():
             return
         func = getattr(args, 'func', None)
         if func is not None:
@@ -253,7 +266,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_voltage(self, args: argparse.Namespace) -> None:
         """Set voltage"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         if self.checkRange(args.value, 25, 1500): self.hv.setVoltageSet(args.value)
 
@@ -263,7 +276,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_on(self, _) -> None:
         """Turn on HV"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         self.hv.powerOn()
 
@@ -273,7 +286,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_off(self, _) -> None:
         """Turn off HV"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         self.hv.powerOff()
 
@@ -283,7 +296,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_reset(self, _) -> None:
         """Reset alarms"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         self.hv.reset()
 
@@ -293,15 +306,14 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_info(self, _) -> None:
         """Print board info"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         info = self.hv.getInfo()
-        (m,q,t) = self.hv.readCalibRegisters()
+        (m, q, t) = self.hv.readCalibRegisters()
         self.poutput(f'{"FW ver": <25}: {info[0]}')
         self.poutput(f'{"PMT s/n": <25}: {info[1]}')
         self.poutput(f'{"HV s/n": <25}: {info[2]}')
-        self.poutput(f'{"FEB s/n": <25}: {info[3]}')
-        self.poutput(f'{"Device ID s/n": <25}: {info[4]}')
+        self.poutput(f'{"Device ID s/n": <25}: {info[3]}')
         self.poutput(f'{"Vref": <25}: {self.hv.getVref()} mV')
         self.poutput(f'{"Calibration slope": <25}: {m}')
         self.poutput(f'{"Calibration offset": <25}: {q}')
@@ -311,13 +323,13 @@ class HighVoltageApp(cmd2.Cmd):
     # mon
     #
     mon_parser = argparse.ArgumentParser()
-    mon_parser.add_argument('seconds',  type=int, default=1, nargs='?', help='number of seconds')
+    mon_parser.add_argument('seconds', type=int, default=1, nargs='?', help='number of seconds')
 
     @cmd2.with_argparser(mon_parser)
     @cmd2.with_category("High Voltage commands")
     def do_mon(self, args: argparse.Namespace) -> None:
         """Print monitored values"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         for i in range(0, args.seconds):
             if i % 20 == 0:
@@ -332,7 +344,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_probe(self, _) -> None:
         """Probe addresses 1 to 20"""
-        for addr in range(1,21):
+        for addr in range(1, 21):
             found = self.hv.open(addr)
             if found:
                 self.prsuccess(f'{addr}')
@@ -343,18 +355,19 @@ class HighVoltageApp(cmd2.Cmd):
     # threshold
     #
     threshold_parser = argparse.ArgumentParser()
-    threshold_parser.add_argument('value', type=int, help='value in mV (min:0 max:2500)')
+    threshold_parser.add_argument('value', type=float, help='value in mV (min:0 max:2500)')
 
     @cmd2.with_argparser(threshold_parser)
     @cmd2.with_category("High Voltage commands")
     def do_threshold(self, args: argparse.Namespace) -> None:
         """Set threshold"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         if self.checkPassword(getpass.getpass()):
             if self.checkRange(args.value, 0, 2500): self.hv.setThreshold(args.value)
         else:
             self.perror(f'password not correct')
+
     #
     # serial
     #
@@ -367,33 +380,24 @@ class HighVoltageApp(cmd2.Cmd):
     hv_parser = serial_subparsers.add_parser('hv', help='HV')
     hv_parser.add_argument('sn', type=str, help='serial number (max 12 char)')
 
-    feb_parser = serial_subparsers.add_parser('feb', help='FEB')
-    feb_parser.add_argument('sn', type=str, help='serial number (max 12 char)')
-
     def serial_pmt(self, args):
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
-        if self.checkLength(args.value, 12): self.hv.setPMTSerialNumber(args.sn)
+        if self.checkLength(args.sn, 12): self.hv.setPMTSerialNumber(args.sn)
 
     def serial_hv(self, args):
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
-        if self.checkLength(args.value, 12): self.hv.setHVSerialNumber(args.sn)
-
-    def serial_feb(self, args):
-        if self.checkConnection() is False:
-            return
-        if self.checkLength(args.value, 12): self.hv.setFEBSerialNumber(args.sn)
+        if self.checkLength(args.sn, 12): self.hv.setHVSerialNumber(args.sn)
 
     pmt_parser.set_defaults(func=serial_pmt)
     hv_parser.set_defaults(func=serial_hv)
-    feb_parser.set_defaults(func=serial_feb)
 
     @cmd2.with_argparser(serial_parser)
     @cmd2.with_category("High Voltage commands")
     def do_serial(self, args):
         """Set serial numbers for PMT/HV/FEB"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         func = getattr(args, 'func', None)
         if func is not None:
@@ -411,14 +415,14 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_argparser(address_parser)
     @cmd2.with_category("High Voltage commands")
     def do_address(self, args: argparse.Namespace) -> None:
-        """Change selected board address"""
-        if self.checkConnection() is False:
+        """Change the selected board address"""
+        if not self.checkConnection():
             return
         if self.checkPassword(getpass.getpass()):
             if self.checkRange(args.value, 1, 20):
                 self.hv.setModbusAddress(args.value)
                 time.sleep(0.5)
-                self.select(args.value)
+                self.select_address(args.value)
             else:
                 return
         else:
@@ -434,7 +438,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_slope(self, args: argparse.Namespace) -> None:
         """Change calibration slope"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         if self.checkPassword(getpass.getpass()):
             self.hv.writeCalibSlope(args.value)
@@ -451,7 +455,7 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_offset(self, args: argparse.Namespace) -> None:
         """Change calibration offset"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         if self.checkPassword(getpass.getpass()):
             self.hv.writeCalibOffset(args.value)
@@ -468,21 +472,20 @@ class HighVoltageApp(cmd2.Cmd):
     @cmd2.with_category("High Voltage commands")
     def do_discr(self, args: argparse.Namespace) -> None:
         """Set discr"""
-        if self.checkConnection() is False:
+        if not self.checkConnection():
             return
         if self.checkPassword(getpass.getpass()):
             self.hv.writeCalibDiscr(args.value)
         else:
             self.perror(f'password not correct')
 
-
     #
     # calibration
     #
     @cmd2.with_category("High Voltage commands")
     def do_calibration(self, _) -> None:
-        """Start calibration procedure"""
-        if self.checkConnection() is False:
+        """Start the calibration procedure"""
+        if not self.checkConnection():
             return
 
         if not self.checkPassword(getpass.getpass()):
@@ -538,7 +541,7 @@ class HighVoltageApp(cmd2.Cmd):
                     time.sleep(2)
                     Vtemp = []
                     self.printMonitorHeader()
-                    for _ in range(0,10):
+                    for _ in range(0, 10):
                         self.printMonitorRow()
                         Vtemp.append(self.hv.getVoltage())
                         time.sleep(0.5)
@@ -546,7 +549,7 @@ class HighVoltageApp(cmd2.Cmd):
                     # delete min/max elements
                     Vmeas.sort()
                     Vmeas = np.delete(Vmeas, 0)
-                    Vmeas = np.delete(Vmeas, len(Vmeas)-1)
+                    Vmeas = np.delete(Vmeas, len(Vmeas) - 1)
                     Vread.append(Vmeas.mean())
                     self.poutput(f'{Vmeas}')
                     self.poutput(f'mean = {Vmeas.mean()}')
@@ -562,7 +565,7 @@ class HighVoltageApp(cmd2.Cmd):
         # turn y into a column vector
         y = y[:, np.newaxis]
         # direct least square regression
-        alpha = np.dot((np.dot(np.linalg.inv(np.dot(A.T,A)),A.T)),y)
+        alpha = np.dot((np.dot(np.linalg.inv(np.dot(A.T, A)), A.T)), y)
         self.poutput(cmd2.ansi.style(f'slope = {alpha[0][0]} , offset = {alpha[1][0]}', fg=cmd2.ansi.Fg.LIGHT_CYAN))
 
         # write calibration registers
@@ -578,10 +581,11 @@ class HighVoltageApp(cmd2.Cmd):
 
         self.prsuccess('calibration DONE!')
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', default='rtu', const='rtu', nargs='?', choices=['rtu', 'tcp'], help='set modbus interface (default: %(default)s)')
-    parser.add_argument('--port', action='store', type=str, help='serial port device (default: /dev/ttyPS2)', default='/dev/ttyPS2')
+    parser.add_argument('--port', action='store', type=str, help='serial port device (default: /dev/ttyPS1)', default='/dev/ttyPS1')
     parser.add_argument('--host', action='store', type=str, help='mbusd hostname (default: localhost)', default='localhost')
     args = parser.parse_args()
 

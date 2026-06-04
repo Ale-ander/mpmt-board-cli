@@ -46,7 +46,7 @@ class RunControlApp(cmd2.Cmd):
         )
 
     def prsuccess(self, msg) -> None:
-        self.poutput(cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.LIGHT_GREEN))
+        self.poutput(cmd2.ansi.style(msg, fg=cmd2.ansi.Fg.LIGHT_CYAN))
 
     def checkRange(self, value, minVal, maxVal) -> bool:
         if value < minVal or value > maxVal:
@@ -204,7 +204,7 @@ class RunControlApp(cmd2.Cmd):
         """Turn on channels"""
         if args.all:
             self.write_reg(1, 0X7FFFF)
-            self.prsuccess("All channels enabled")
+            self.prsuccess("All channels turned ON")
         else:
             for channel in args.value:
                 if self.checkRange(channel, 1, 19):
@@ -224,7 +224,7 @@ class RunControlApp(cmd2.Cmd):
         """Turn off channels"""
         if args.all:
             self.write_reg(1, 0)
-            self.prsuccess("All channels disabled")
+            self.prsuccess("All channels turned OFF")
         else:
             for channel in args.value:
                 if self.checkRange(channel, 1, 19):
@@ -281,8 +281,8 @@ class RunControlApp(cmd2.Cmd):
 
     def print_trreg(self) -> None:
         clock_reg = self.read_reg(3)
-        self.poutput(f"Tr32: {'not received' if (clock_reg&0x800) > 0 else 'received'} and {'not aligned' if (clock_reg&0x400) > 0 else 'aligned'} - counted: {self.read_reg(45)}")
-        self.poutput(f"TagT: {'not received' if (clock_reg&0x2000) > 0 else 'received'} and {'not aligned' if (clock_reg&0x1000) > 0 else 'aligned'} ({'parity not ok' if (clock_reg&0x4000) > 0 else 'parity ok'})\n")
+        self.poutput(f"Tr32: {'not received' if (clock_reg&0x800) > 0 else 'received'}, {'not aligned' if (clock_reg&0x400) > 0 else 'aligned'} and {'arrived early' if (clock_reg&0x1000) > 0 else 'in synch'} - counted: {self.read_reg(45)}")
+        self.poutput(f"TagT: {'not received' if (clock_reg&0x2000) > 0 else 'received'} ({'parity not ok' if (clock_reg&0x4000) > 0 else 'parity ok'})")
 
     #
     # change clk source
@@ -346,6 +346,33 @@ class RunControlApp(cmd2.Cmd):
             self.prsuccess("Calibration performed in the next event")
         elif answer.upper() == 'N' or answer == '':
             self.perror("Calibration not performed")
+        else:
+            self.perror(f'Invalid response')
+
+    #
+    # SPI clock speed
+    #
+    @cmd2.with_category("Slow control commands")
+    def do_spi(self, _) -> None:
+        """Change the SPI clock frequency"""
+        answer = input("Select SPI clock frequency(0-3): 0->10.42MHz 1->12.5MHz 2->15.625MHz 3->20.83MHz ")
+        cleanreg = self.read_reg(4)
+        if answer == '0':
+            self.write_reg(4, cleanreg & 0x7FFFF)
+            self.prsuccess(f"SPI frequency set to 10.42MHz")
+        elif answer == '1':
+            cleanreg |= 0x80000
+            cleanreg &= 0xFFFFF
+            self.write_reg(4, cleanreg)
+            self.prsuccess(f"SPI frequency set to 12.5MHz")
+        elif answer == '2':
+            cleanreg |= 0x100000
+            cleanreg &= 0x17FFFF
+            self.write_reg(4, cleanreg)
+            self.prsuccess(f"SPI frequency set to 15.625MHz")
+        elif answer == '3':
+            self.write_reg(4, cleanreg | 0x180000)
+            self.prsuccess(f"SPI frequency set to 20.83MHz")
         else:
             self.perror(f'Invalid response')
 
@@ -430,7 +457,7 @@ class RunControlApp(cmd2.Cmd):
     # time to peak
     #
     ttp_parser = argparse.ArgumentParser()
-    ttp_parser.add_argument('value', type=int, help='time after trigger to ADC sample (max=4096, unit=8ns)')
+    ttp_parser.add_argument('value', type=int, help='time after trigger to ADC sample (max=4096, unit=~3.6ns)')
     ttp_parser.add_argument('channel', type=int, nargs='*', help='channel (1-19)')
     ttp_parser.add_argument('-a', "--all", action="store_true", help='set for all channels')
 
@@ -448,9 +475,9 @@ class RunControlApp(cmd2.Cmd):
                     chaddress = math.floor((channel-1) / 2) + 28
                     cleanreg = self.read_reg(chaddress)
                     if channel % 2 == 0:
-                        self.write_reg(chaddress, (args.value << 12) | (cleanreg & 0xFFF))
-                    else:
                         self.write_reg(chaddress, (cleanreg & 0xFFF000) | args.value)
+                    else:
+                        self.write_reg(chaddress, (args.value << 12) | (cleanreg & 0xFFF))
 
     #
     # time to peak
@@ -656,7 +683,7 @@ class RunControlApp(cmd2.Cmd):
             self.pwarning("Rates (Hz):")
             self.poutput(f"CH1:  {ratemeters[0]:08},  CH2: {ratemeters[1]:08},  CH3: {ratemeters[2]:08},  CH4: {ratemeters[3]:08},  CH5: {ratemeters[4]:08},  CH6: {ratemeters[5]:08},  CH7: {ratemeters[6]:08},  CH8: {ratemeters[7]:08},")
             self.poutput(f"CH9:  {ratemeters[8]:08}, CH10: {ratemeters[9]:08}, CH11: {ratemeters[10]:08}, CH12: {ratemeters[11]:08}, CH13: {ratemeters[12]:08}, CH14: {ratemeters[13]:08}, CH15: {ratemeters[14]:08}, CH16: {ratemeters[15]:08},")
-            self.poutput(f"CH17: {ratemeters[16]:08}, CH18: {ratemeters[17]:08}, CH19: {ratemeters[18]:08}  --  Deadtime: {deadtime}%  --  FIFO: {fifodata} words ({'FULL' if self.read_reg(3)&0x1 > 0 else 'not FULL'}) \n")
+            self.poutput(f"CH17: {ratemeters[16]:08}, CH18: {ratemeters[17]:08}, CH19: {ratemeters[18]:08}  --  Deadtime: {deadtime}%  --  FIFO: {fifodata} words ({'FULL' if self.read_reg(3)&0x1 > 0 else 'not FULL'})")
             self.pwarning("Tr32 status:")
             self.print_trreg()
             self.pwarning("Clock status:")
@@ -670,9 +697,12 @@ class RunControlApp(cmd2.Cmd):
     @with_category("Monitoring commands")
     def do_version(self, _) -> None:
         """Check firmware version"""
-        version = self.read_reg(62)
+        date = str(hex(self.read_reg(61))[2:])
+        time = str(hex(self.read_reg(62))[2:])
         sha = self.read_reg(63)
-        self.poutput(f"Firmware version: {version}\nCommit SHA: {sha:08x}")
+        ver = str(hex(self.read_reg(104)))
+        self.poutput(f"Firmware version v{ver[2]}.{int(ver[3:5])}.{int(ver[5:], 16)}")
+        self.poutput(f"Bitstream created the {date[6:]}-{date[4:6]}-{date[:4]} at {time[:2]}:{time[2:4]}:{time[4:6]} (commit SHA: {sha:08x})")
 
     #
     # default
