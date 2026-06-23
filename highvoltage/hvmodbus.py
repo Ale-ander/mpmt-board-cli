@@ -217,6 +217,9 @@ class HVModbus:
         slave = self.address if slave is None else slave
         self.client.write_register(address=0x00, value=addr, slave=slave)
 
+    def setForceModbusAddress(self, addr):
+        self.client.write_register(address=0x00, value=addr, slave=0, no_response_expected=True)
+
     def readMonRegisters(self, slave=None):
         slave = self.address if slave is None else slave
 
