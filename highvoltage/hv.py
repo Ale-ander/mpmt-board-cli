@@ -281,6 +281,14 @@ class HighVoltageApp(cmd2.Cmd):
         self.hv.powerOn()
 
     #
+    # onAll
+    #
+    @cmd2.with_category("High Voltage commands")
+    def do_onAll(self, _) -> None:
+        """Turn on HV of all channels"""
+        self.hv.powerOnAll()
+
+    #
     # off
     #
     @cmd2.with_category("High Voltage commands")
@@ -289,6 +297,14 @@ class HighVoltageApp(cmd2.Cmd):
         if not self.checkConnection():
             return
         self.hv.powerOff()
+
+    #
+    # off
+    #
+    @cmd2.with_category("High Voltage commands")
+    def do_offAll(self, _) -> None:
+        """Turn off HV of all channels"""
+        self.hv.powerOffAll()
 
     #
     # reset
