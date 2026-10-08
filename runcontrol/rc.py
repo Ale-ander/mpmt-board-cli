@@ -81,7 +81,7 @@ class RunControlApp(cmd2.Cmd):
         cols = [Column(headers[0], width=first_w, header_horiz_align=HorizontalAlignment.LEFT)]
         cols += [Column(h, width=w, header_horiz_align=HorizontalAlignment.CENTER, data_horiz_align=HorizontalAlignment.CENTER)
                  for h in headers[1:]]
-        tbl = SimpleTable(cols, divider_char="─")  # oppure BorderedTable(cols)
+        tbl = SimpleTable(cols, divider_char="─")
         self.poutput(tbl.generate_table(rows, row_spacing=0))
         
     #
@@ -282,6 +282,7 @@ class RunControlApp(cmd2.Cmd):
         self.print_clockreg()
 
     def print_clockreg(self) -> None:
+        """Print clock registers"""
         c, s = self._read_reg(3), self._read_reg(4)
 
         self.poutput(f"PLL: {self._flag(c & 0x2, 'locked', 'free running')}, "
@@ -315,6 +316,7 @@ class RunControlApp(cmd2.Cmd):
         self.print_trreg()
 
     def print_trreg(self) -> None:
+        """Print Tr32 counters registers"""
         tr32, td, tot = self._read_reg(105), self._read_reg(106), self._read_reg(45)
 
         self._table(
@@ -325,7 +327,7 @@ class RunControlApp(cmd2.Cmd):
             ],
             first_w=4,
         )
-        self.poutput(f"Tr32 counted: {self._cnt(tot)}")
+        self.poutput(f"Tr32 counted: {tot}")
 
     #
     # change clk source
@@ -456,17 +458,15 @@ class RunControlApp(cmd2.Cmd):
     rst_subparsers = rst_parser.add_subparsers(dest='subcommand')
 
     rst_multi_parser = rst_subparsers.add_parser('DMA', help='toggle DMA reset')
-
     rst_fifo_parser = rst_subparsers.add_parser('fifo', help='toggle fifo reset')
+    rst_tr_parser = rst_subparsers.add_parser('tr', help='reset tr error counters')
 
     @cmd2.with_category("Slow control commands")
     @cmd2.with_argparser(rst_parser)
     def do_reset(self, args) -> None:
         """Toggle multichannel or AXI-FIFO reset"""
         state = self._read_reg(4) & 0x01200
-        if args.subcommand is None:
-            self.perror("Invalid subcommand")
-        elif args.subcommand == 'DMA':
+        if args.subcommand == 'DMA':
             if 0x1000 <= state:
                 self._write_reg(4, self._read_reg(4) & 0x1EFFF)
                 self._prsuccess("DMA reset")
@@ -480,6 +480,10 @@ class RunControlApp(cmd2.Cmd):
             else:
                 self._write_reg(4, self._read_reg(4) | 0x00200)
                 self._prsuccess("FIFO reset")
+        elif args.subcommand == 'tr':
+            self._write_reg(4, self._read_reg(4) | 0x400000)
+            self._write_reg(4, self._read_reg(4) & 0XFFBFFFFF)
+            self._prsuccess("TR error counters reset")
 
     #
     # timeout
